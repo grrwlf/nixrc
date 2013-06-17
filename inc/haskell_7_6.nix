@@ -1,6 +1,6 @@
 { config, pkgs, ... } :
 
-let 
+let
 
   haskbase = self : [
     self.haskellPlatform
@@ -13,7 +13,7 @@ in {
 
     packageOverrides = pkgs: {
 
-      haskell_7_6 = (pkgs.haskellPackages_ghc762.ghcWithPackages haskbase);
+      haskell_7_6 = (pkgs.haskellPackages_ghc763.ghcWithPackages haskbase);
 
     };
   };

@@ -9,15 +9,12 @@ rec {
       ./inc/devenv.nix
       ./inc/subpixel.nix
       ./inc/haskell_7_6.nix
+      <nixos/modules/programs/virtualbox.nix>
     ];
 
   hardware.firmware = [ "/root/firmware" ];
 
   hardware.bluetooth.enable = false;
-
-  # Specify all kernel modules that are necessary for mounting the root
-  # filesystem.
-  boot.initrd.kernelModules = [ ];
 
   boot.blacklistedKernelModules = [
     "fbcon"
@@ -37,6 +34,10 @@ rec {
 
   # Define on which hard drive you want to install Grub.
   boot.loader.grub.device = "/dev/sda";
+
+  boot.kernelModules = [
+    "fuse"
+  ];
 
   # Europe/Moscow
   time.timeZone = "Etc/GMT-4";
@@ -108,12 +109,14 @@ rec {
 
   # Enable CUPS to print documents.
   # services.printing.enable = true;
-  
+
   services.dbus.packages = [ pkgs.gnome.GConf ];
 
   # Enable the X11 windowing system.
   services.xserver = {
     enable = true;
+
+    startOpenSSHAgent = true;
 
     videoDrivers = [ "intel" ];
 
@@ -127,6 +130,7 @@ rec {
       # job.logsXsession = true;
       slim = {
         enable = true;
+		autoLogin = true;
         defaultUser = "ierton";
       };
     };
@@ -200,7 +204,7 @@ rec {
     # Basic tools
     psmisc
     iptables
-    nmap
+    #nmap
     tcpdump
     pmutils
     file
@@ -223,6 +227,8 @@ rec {
     # unetbootin
     rpm
     atool
+    ppp
+    pptp
 
     # X11 apps
     xorg.xdpyinfo
@@ -261,6 +267,7 @@ rec {
     gimp_2_8
     skype
     dosbox
+    eclipses.eclipse_cpp_42
 
     # Custom stuff
     haskell_7_6

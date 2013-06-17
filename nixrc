@@ -225,9 +225,55 @@ nix-dev-penv() {(
   rm -rf "$T"
 )}
 
+nix-dev-querydrv() {
+	local S=`nix-env -qs --installed $1 --out-path | awk '{print $3}'`
+	local N=`echo $S | wc -w`
+	case $N in
+		1) echo $S ;;
+		0) echo "Package $1 not found" >&2 ; return 1 ;;
+		*) echo "More than one occurence of $1 found, abort" >&2 ; return 1 ;;
+	esac
+}
+
 nix-dev-follow() {
-  local path=$(readlink `which $1`)
-  cd `echo $path | awk -F '/' '{printf("/%s/%s/%s\n",$2,$3,$4);}'`
+  {
+    local P
+    P=$(readlink `which $1` 2>/dev/null) ||
+    P=$(nix-dev-querydrv $1) ||
+    { echo "Can't follow $1" >&2 ; return 1; }
+  } &&
+  cd `echo $P | awk -F '/' '{printf("/%s/%s/%s\n",$2,$3,$4);}'`
+}
+
+nix-dev-addldpath() {
+  local S
+  S=`nix-dev-querydrv $1` ||
+  { echo "Querydrv $1 failed" >&2 ; return 1; }
+	export LD_LIBRARY_PATH="$S/lib:$LD_LIBRARY_PATH"
+	echo LD_LIBRARY_PATH=$LD_LIBRARY_PATH >&2
+}
+
+nix-dev-addcsrc() {
+  local S
+  S=`nix-dev-querydrv $1` ||
+  { echo "Querydrv $1 failed" >&2 ; return 1; }
+	export C_INCLUDE_PATH="$S/include:$C_INCLUDE_PATH"
+	export LIBRARY_PATH="$S/lib:$LIBRARY_PATH"
+  echo C_INCLUDE_PATH=$C_INCLUDE_PATH >&2
+	echo LIBRARY_PATH=$LIBRARY_PATH >&2
+}
+
+nix-dev-addpy() {
+  local S
+  S=`nix-dev-querydrv $1` ||
+  { echo "Querydrv $1 failed" >&2 ; return 1; }
+  local P="$S/lib/`ls -1 $S/lib`/site-packages"
+  if test -n "$PYTHONPATH" ; then
+    export PYTHONPATH="`ls -d1 $P/*egg`:$PYTHONPATH"
+  else
+    export PYTHONPATH="`ls -d1 $P/*egg`"
+  fi
+	echo PYTHONPATH=$PYTHONPATH >&2
 }
 
 else
