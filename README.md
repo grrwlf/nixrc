@@ -7,26 +7,21 @@ nixrc script containing some usefull functions for NixOS development.
 * nixos-intel-ideapad.nix
 * nixos-samsung-np900x3c.nix
 
-Nix-Dev helpers
-===============
+Nix-Dev
+=======
 
 Nixrc is a plain bash script carefully written to assist in NixOS development.
 
-Deploying
----------
+Installing
+----------
 
-Deploying is not fully automatic so you probably will have to watch inside ./nixrc to find out
-the details.
+'Installation' means fetching Nixos/Nixpkgs trees and applying my local
+development branch on top of them. ./install does this automatically. It may be
+easily customized to use other development trees, but the name of development
+branch is mandatory: it should be called 'local'.
 
-    $ git clone https://github.com/ierton/nixrc && cd nixrc
-
-    $ git clone https://github.com/NixOS/nixpkgs
-
-    $ git clone https://github.com/NixOS/nixos
-    
-    $ echo export NIX_DEV_ROOT=`pwd` >> ~/.bash_profile
-
-    $ . ./nixrc
+Tools
+-----
     
     $ nix-dev-
     nix-dev-asroot           nix-dev-pfetch           nix-dev-rebuild-dryrun
@@ -62,8 +57,13 @@ Shows latest stable commit, i.e. commit wich has a Hydra build associated.
 
 nix-dev-update
 --------------
-Does many things:
-* Updates nixos and nixpkgs from the origin/master
+Fetches upstream treas and rebases local development branch. The algorithm is
+following:
+* Updates local nixos and nixpkgs trees from the origin/master
 * Determines right commits in both repos to base upon
-* Rebases 'local' branches in both repos upon new bases, saving current 'local' as 'local-$oldbase'
+* Rebases local branches in both repos upon new bases
+
+nix-dev-penv
+------------
+Sets up build environment for a package in a sub-shell
 
