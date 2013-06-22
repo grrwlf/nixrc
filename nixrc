@@ -14,7 +14,8 @@ vimconf() { (cde && vim nixos-config ; ); }
 vimallp() { (cdp && vim pkgs/top-level/all-packages.nix; ); }
 vime() { (cde && vim .; ); }
 
-nix-dev-asroot() {
+# Sudo helper
+_asroot() {
   case `whoami` in
     root)
       echo "" ;;
@@ -23,39 +24,57 @@ nix-dev-asroot() {
   esac
 }
 
-nix-dev-rebuild() { `nix-dev-asroot` `which nixos-rebuild` -I $NIX_DEV_ROOT "$@" ; }
-nix-dev-rebuild-switch() { nix-dev-rebuild switch "$@" ; }
-# nix-dev-rebuild-build() { nixos-rebuild -I $NIX_DEV_ROOT build "$@" ; }
-nix-dev-rebuild-build() { nix-dev-rebuild build "$@";  }
-nix-dev-rebuild-dryrun() { nix-dev-rebuild dry-run "$@";  }
+_needhelp() {
+  echo "$@" | grep -qwE -e '-h|--help'
+}
 
-nix-dev-revision() {
-  local revfile=/nix/var/nix/profiles/per-user/root/channels/nixos/nixos/svn-revision
+nix-dev-rebuild() { `_asroot` nixos-rebuild -I $NIX_DEV_ROOT "$@" ; }
+#nix-dev-rebuild-switch() { nix-dev-rebuild switch "$@" ; }
+#nix-dev-rebuild-build() { nixos-rebuild -I $NIX_DEV_ROOT build "$@" ; }
+#nix-dev-rebuild-build() { nix-dev-rebuild build "$@";  }
+#nix-dev-rebuild-dryrun() { nix-dev-rebuild dry-run "$@";  }
+
+# Print current system's revisions
+nix-dev-revision-sys() {
+  local revfile=/nix/var/nix/profiles/per-user/root/channels/nixos/nixos/.version
   local rev_info=`cut -d'_' -f2 < $revfile`
   case $1 in
     nixpkgs) echo $rev_info | cut -d'-' -f2 ;;
     nixos) echo $rev_info | cut -d'-' -f1 ;;
-    *) printf "usage: nix-dev-revision nixos|nixpkgs\n" >&2
-       printf "revision file contents: %s\n" `cat $revfile`  >&2 
+    *) printf "Usage: nix-dev-revision nixos|nixpkgs\n" >&2
+       printf "Revision file contents: %s\n" `cat $revfile`  >&2
        return 1
        ;;
   esac
 }
 
-# Prints the revision number of the latest nixos/nixpkgs Hydra build.
+# Print latest Hydra's revisions
 nix-dev-revision-latest() {
   local rev=`wget -q  -S --output-document - http://nixos.org/releases/nixos/channels/nixos-unstable 2>&1 |
     grep Location | head -n 1 | awk -F '_' '{print $2}'`
   if test "$?" != "0" ; then
+    echo "nix-dev-revision-latest: Error obtaining channel info from nixos.org" >&2
     return $?
   fi
   case $1 in
     nixpkgs) echo $rev | cut -d'-' -f2 ;;
     nixos) echo $rev | cut -d'-' -f1 ;;
-    *) printf "usage: nix-dev-revision-latest nixos|nixpkgs\n" >&2
-       printf "revision string: %s\n" $rev  >&2 
+    *) printf "Usage: nix-dev-revision-latest nixos|nixpkgs\n" >&2
+       printf "Revision string: %s\n" $rev  >&2
        return 1
        ;;
+  esac
+}
+
+# Print local tree's revisions
+nix-dev-revision-intree() {
+  local ME=nix-dev-revision-src
+  nixpkgs=$(cdp && git merge-base local origin/master | cut -c 1-7)
+  nixos=$(cdn && git merge-base local origin/master | cut -c 1-7)
+  case $1 in
+    nixpkgs) echo $nixpkgs ;;
+    nixos) echo $nixos ;;
+    *) echo "${nixos}_${nixpkgs}" ;;
   esac
 }
 
@@ -64,97 +83,124 @@ nix-dev-fetch() {
   ( cdn && git fetch origin ; )
 }
 
-# Check whether simple rebase is possible or not
+# Check whether simple rebase is possible or not. NixDev only supports simple
+# rebases.
 nix-dev-rebase-check() {
-   local out=`git log --oneline  --no-merges local --not refs/remotes/origin/master local`
-   if test -n "$out" ; then
-     echo "nix-dev-rebase-check: failed: looks like there is a tricky case in the git repo. Please check it yourself" >&2
-     return 1;
-   fi
+  # Should be run from nixos|nixpkgs tree
+  pwd | grep -qE 'nixpkgs|nixos' || return 1
+  local out=`git log --oneline  --no-merges local --not refs/remotes/origin/master local`
+  if test -n "$out" ; then
+    echo "nix-dev-rebase-check: failed: looks like there is a tricky case in the git repo. Please check it yourself" >&2
+    return 1;
+  fi
 }
 
-nix-dev-rebase() {(
+nix-dev-rebase() {
+  local ME=nix-dev-rebase
   echo $@ | grep -qwE -e '-h|--help' && {
-    echo "nix-dev-rebase nixos|nixpkgs - Rebase the local branch onto the latest revision" >&2
+    echo "$ME nixos|nixpkgs - Rebase the local branch onto the latest revision" >&2
     return 1
   }
 
   local tree=$1
   test -z "$tree" && {
-    echo "Argument required, try --help" >&2
+    echo "$ME: Argument required, try --help" >&2
     return 1
   }
 
-  (
-    set -ex
-    cd $NIX_DEV_ROOT/$tree
-    git fetch origin
-    nix-dev-rebase-check
-    git checkout local
-    base=`git merge-base local origin/master`
-    git branch -f local-$base
-    newref=`nix-dev-revision-latest $tree`
-    git rebase -f $newref
-  ) 
-
-  if [ "$?" != "0" ] ; then
-    echo "Automatic rebasing of $tree failed." >&2
-    echo "You may go to $NIX_DEV_ROOT/$tree and fix it manually." >&2
-    exit 1
+  local cwd=`pwd`
+  if ! cd $NIX_DEV_ROOT/$tree 2>/dev/null ; then
+    echo "$ME: $NIX_DEV_ROOT/$tree is not a directory" >&2
+    return 1
   fi
-
-)}
-
-nix-dev-update() {
-  echo $@ | grep -qwE -e '-h|--help' && {
-    echo "nix-dev-update - updates my local git trees" >&2
-    return 1
-  }
 
   (
     set -e
-    nix-dev-rebase nixos
-    nix-dev-rebase nixpkgs
-    `nix-dev-asroot` nix-channel --update nixos
-  )
+    echo "$ME: Fetching origin"
+    git fetch origin
+    echo "$ME: Checking whether rebase is possible"
+    nix-dev-rebase-check
+    echo "$ME: Checking out local branch"
+    git checkout local
+    base=`git merge-base local origin/master`
+    echo "$ME: Backing up current branch to local-$base"
+    git branch -f local-$base
+    newref=`nix-dev-revision-latest $tree`
+    echo "$ME: Rebasing local to $newref"
+    git rebase -f $newref
+  ) >&2
+
+  if [ "$?" != "0" ] ; then {
+    echo "$ME: Automatic rebasing failed for $tree. Do some git magic to fix it."
+    } >&2
+    return 1
+  fi
+
+  cd $cwd
+}
+
+nix-dev-update() {
+  local ME=nix-dev-update
+  _needhelp "$@" && {
+    echo "$ME: updates my local git trees" >&2
+    return 1
+  }
+
+  nix-dev-rebase nixos && nix-dev-rebase nixpkgs && {
+    echo "$ME: Successfully updated to `nix-dev-revision-intree` revisions" >&2
+  }
+
 }
 
 nix-dev-attr-by-name() {(
+  ME=nix-dev-attr-by-name
+  _needhelp "$@" && {
+    echo "$ME: print nixpkgs attribute name of a package" >&2
+    exit 1
+  }
+
   IFS=''
   Q=`nix-env -qa \* -P | grep -iw "$1"`
   case `echo $Q | wc -w` in
-    0) echo "nix-dev-attr-by-name: No packages found" >&2 ;
+    0) echo "$ME: No packages found" >&2 ;
        exit 1 ;;
     2) ATTR=`echo $Q | awk '{print $1}'`
        echo "$ATTR";;
-    *) printf "nix-dev-attr-by-name: More than one package found:\n" >&2
+    *) printf "$ME: More than one package found:\n" >&2
        echo $Q | awk '{printf ("  %s\n",$2)}' | sort >&2
        exit 1 ;;
   esac
 )}
 
-nix-dev-pfetch-by-attr() { (
+nix-dev-getsrc-by-attr() { (
   set -e
-  nix-build --no-out-link $NIX_DEV_ROOT/nixpkgs/pkgs/top-level/all-packages.nix -A $1.src --show-trace 
+  nix-build --no-out-link $NIX_DEV_ROOT/nixpkgs/pkgs/top-level/all-packages.nix -A $1.src --show-trace
 ) }
 
-nix-dev-pfetch() {(
+nix-dev-getsrc() {(
   nix-dev-attr-by-name $1 | {
     read ATTR && (
-    nix-dev-pfetch-by-attr $ATTR
+    nix-dev-getsrc-by-attr $ATTR
   )}
 )}
 
 nix-dev-unpack() {(
+  ME=nix-dev-unpack
+  _needhelp "$@" && {
+    echo "$ME: Unpack package's tarball (.src attribute) to a subdir" >&2
+    echo "Example: $ME man-1.6g" >&2
+    exit 1
+  }
+
   NAME=""
-  FETCHER=nix-dev-pfetch
+  FETCHER=nix-dev-getsrc
   while test -n "$1" ; do
     case $1 in
       -h|--help)
-          echo "nix-dev-unpack [-A] NAME - Unpacks package into current directory" >&2
+          echo "$ME [-A] NAME - Unpacks package into current directory" >&2
           exit 1 ;;
       -A)
-          FETCHER=nix-dev-pfetch-by-attr;;
+          FETCHER=nix-dev-getsrc-by-attr;;
       *)
           NAME=$1;;
     esac
@@ -162,7 +208,11 @@ nix-dev-unpack() {(
   done
 
   $FETCHER $NAME | { read path && (
-    if test -d $path ; then cp -r $path ./out ; else aunpack $path ; fi
+    if test -d $path ; then
+      cp -r $path ./out
+    else
+      aunpack $path
+    fi
   )}
 )}
 
@@ -178,6 +228,13 @@ nix-dev-patch() {(
 )}
 
 nix-dev-penv() {(
+  ME=nix-dev-penv
+  _needhelp "$@" && {
+    echo "$ME: Setup package's devenv in a subshell" >&2
+    echo "Example: $ME mc" >&2
+    exit 1
+  }
+
   NAME=""
   ATTR=""
   while test -n "$1" ; do
@@ -201,7 +258,7 @@ nix-dev-penv() {(
     fi
   fi
 
-  SRC=`nix-dev-pfetch-by-attr $ATTR`
+  SRC=`nix-dev-getsrc-by-attr $ATTR`
   if test "$?" != "0" ; then
     exit 3
   fi
@@ -213,7 +270,7 @@ nix-dev-penv() {(
     if test -d $SRC ; then cp -r $SRC ./out ; else aunpack $SRC ; fi
     dir=`ls -1 .`
     ( cd $dir && find -name '*[ch]' -or -name '*.cpp' | xargs ctags ; )
-    cp -r $dir $dir.orig 
+    cp -r $dir $dir.orig
     export NIX_DEV_UNPACK=`pwd`
     export NIX_DEV_UNPACK_SRC=$dir
     export NIX_DEV_UNPACK_SRC_ORIG=$dir.orig
@@ -236,11 +293,9 @@ nix-dev-querydrv() {
 }
 
 nix-dev-follow() {
-  {
-    local P
+  { local P
     P=$(readlink `which $1` 2>/dev/null) ||
-    P=$(nix-dev-querydrv $1) ||
-    { echo "Can't follow $1" >&2 ; return 1; }
+    P=$(nix-dev-querydrv $1)
   } &&
   cd `echo $P | awk -F '/' '{printf("/%s/%s/%s\n",$2,$3,$4);}'`
 }
@@ -259,7 +314,7 @@ nix-dev-addcsrc() {
   { echo "Querydrv $1 failed" >&2 ; return 1; }
 	export C_INCLUDE_PATH="$S/include:$C_INCLUDE_PATH"
 	export LIBRARY_PATH="$S/lib:$LIBRARY_PATH"
-  echo C_INCLUDE_PATH=$C_INCLUDE_PATH >&2
+	echo C_INCLUDE_PATH=$C_INCLUDE_PATH >&2
 	echo LIBRARY_PATH=$LIBRARY_PATH >&2
 }
 
