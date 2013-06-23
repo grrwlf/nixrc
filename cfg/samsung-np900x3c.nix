@@ -6,9 +6,9 @@
 rec {
   require = [
       /etc/nixos/hardware-configuration.nix
-      ./inc/devenv.nix
-      ./inc/subpixel.nix
-      ./inc/haskell_7_6.nix
+      ./include/devenv.nix
+      ./include/subpixel.nix
+      ./include/haskell_7_6.nix
       <nixos/modules/programs/virtualbox.nix>
     ];
 

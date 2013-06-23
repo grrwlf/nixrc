@@ -6,9 +6,9 @@
 rec {
   require = [
       /etc/nixos/hardware-configuration.nix
-#      ./inc/devenv.nix
-#      ./inc/subpixel.nix
-#      ./inc/haskell_7_6.nix
+#      ./include/devenv.nix
+#      ./include/subpixel.nix
+#      ./include/haskell_7_6.nix
 #      <nixos/modules/programs/virtualbox.nix>
     ];
 
@@ -32,6 +32,15 @@ rec {
   # Use the GRUB 2 boot loader.
   boot.loader.grub.enable = true;
   boot.loader.grub.version = 2;
+  #boot.loader.grub.extraEntries = ''
+  #  menuentry "Windows 7 (loader) (on /dev/sda1)" {
+  #    insmod part_msdos
+  #    insmod ntfs
+  #    set root='(hd0,msdos0)'
+  #    chainloader +1    
+  #  }
+  #'';
+
 
   # Define on which hard drive you want to install Grub.
   boot.loader.grub.device = "/dev/sda";

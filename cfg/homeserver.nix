@@ -6,8 +6,8 @@
 {
   require = [
       /etc/nixos/hardware-configuration.nix
-      ./inc/haskell_7_6.nix
-      ./inc/devenv.nix
+      ./include/haskell_7_6.nix
+      ./include/devenv.nix
     ];
 
   hardware.firmware = [ "/root/firmware" ];
