@@ -46,8 +46,8 @@ Tools
 
 nix-env
 -------
-Just an alias for system's nix-env, but with -I flag set to point to a
-development tree. See ./nixrc for details.
+Just an alias for system's nix-env, with -I flag set to point to a development
+tree. See ./nixrc for details.
 
 nix-dev-penv
 ------------
