@@ -23,13 +23,13 @@ development branches for both Nixpkgs and Nixos trees. Main features are:
 Installing
 ----------
 
-'Installation' means fetching Nixos/Nixpkgs trees and creating branch named
+'Installation' means cloning Nixos/Nixpkgs trees and creating branch named
 'local'. To do so, launch
 
     ./install
 
 script from the project root. It will clone nixos/nixpkgs to a current directory
-and creates branch named 'local' for local development. (name 'local' is
+and create branch named 'local' for the local development. (name 'local' is
 hardcoded). Then, it asks you to link ./nixrc into  your .bashrc in order to
 make nix-dev- functions available.
 
