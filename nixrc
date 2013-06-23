@@ -218,12 +218,13 @@ nix-dev-unpack() {(
 
 nix-dev-patch() {(
   if ! test -d "$NIX_DEV_UNPACK" ; then
-    echo "Run this command from the nixenv-penv shell" >&2
+    echo "Run this command from the nix-dev-penv subshell" >&2
     exit 1;
   fi
 
+  LANG=C
   cd "$NIX_DEV_UNPACK" &&
-  diff -ruN $NIX_DEV_UNPACK_SRC_ORIG $NIX_DEV_UNPACK_SRC
+  diff -ru $NIX_DEV_UNPACK_SRC_ORIG $NIX_DEV_UNPACK_SRC
 
 )}
 
@@ -231,6 +232,7 @@ nix-dev-penv() {(
   ME=nix-dev-penv
   _needhelp "$@" && {
     echo "$ME: Setup package's devenv in a subshell" >&2
+    echo "$ME: nix-dev-penv [-A] PKG" >&2
     echo "Example: $ME mc" >&2
     exit 1
   }
@@ -239,9 +241,6 @@ nix-dev-penv() {(
   ATTR=""
   while test -n "$1" ; do
     case $1 in
-      -h|--help)
-          echo "nix-dev-penv [-A] NAME - Set up package buid environment" >&2
-          exit 1;;
       -A)
           ATTR=$2
           shift ;;

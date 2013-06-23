@@ -1,29 +1,29 @@
 #!/bin/sh
 
-ME=grwlf
-
-checkout_my_tree() { (
-	local tree=$1
-	cd $tree
-	git remote add github git@github.com:$ME/${tree}.git ||
-  git remote set-url github git@github.com:$ME/${tree}.git
-	git fetch github +local:local
-	git checkout local
-) }
-
 set -e
 
 I=nix-dev-install
 
-echo "$I: Checking out nixpkgs tree"
-git clone https://github.com/NixOS/nixpkgs
-checkout_my_tree nixpkgs
-echo "$I: Checking out nixos tree"
-git clone https://github.com/NixOS/nixos
-checkout_my_tree nixos
 echo "$I: Copying current configuration to nix-dev dir"
 cp /etc/nixos/configuration.nix current-configuration.nix
 ln -s current-configuration.nix nixos-config
+
+echo "$I: Checking out nixpkgs tree"
+git clone https://github.com/NixOS/nixpkgs
+echo "$I: Checking out nixos tree"
+git clone https://github.com/NixOS/nixos
+
+echo "$I: Creating 'local' branches for development"
+
+( cd nixpkgs
+  git branch local
+  git checkout local
+)
+
+( cd nixos
+  git branch local
+  git checkout local
+)
 
 echo ""
 echo "Consider adding following lines to your .bashrc:"
