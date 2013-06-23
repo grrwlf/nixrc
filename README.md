@@ -110,7 +110,7 @@ patch between package's sources and it's original version. Typical usage are
     $ nix-dev-patch > ~/quick.patch
 
 ~/quick.patch will contain your fixes (manual editing may be needed). Review it
-and add to the nix-expression.
+and add to your nix-expression.
 
 nix-dev-unpack
 --------------
