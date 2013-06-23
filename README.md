@@ -1,16 +1,18 @@
 Nix-Dev
 =======
 
-Nix dev is a plain bash script carefully written to assist in NixOS development.
+Nixdev is a plain bash script carefully written to assist in NixOS development.
 The script contains useful finctions allowing user to manage his/her local
 development branches for both Nixpkgs and Nixos trees. Main features are:
 
 * Script is designed to be sourced from .bashrc or similar, providing alias for
-  nix-env command as well as several handy nix-dev- commands.
-* Nixpkgs/NixOS sources are placed locally in nixpkgs/nixos folders allowing
+  nix-env command and a set of nix-dev- functinos.
+* ./install will clone Nixpkgs/NixOS sources in local subfolders, allowing
   user to keep several different copies of nixdev on a single system.
 * Local development branch (named 'local') can be easily rebased onto
-  new stable point, every time it appears in channel. See nix-dev-update.
+  new stable point, every time it appears in channel. See nix-dev-update. Note,
+  that it is able to detect tricky cases and abort possibly dangerous
+  operations.
 * Package sources can easilly be unpacked, see nix-dev-unpack command.
 * nix-dev-penv PKG opens build environment for a package named PKG in a subshell
 * nix-dev-rebuild is a wrapper for nixos-rebuild.
@@ -117,6 +119,6 @@ nix-dev-unpack
 Usage: nix-dev-unpack [-A] PKG
 
 Unpacks package's tarball (.src filed of a derivation) into a subdirectory. -A
-flag has same meaning as in nix-env.
+flag has same meaning as in nix-env. Atool package is required for this command.
 
 
