@@ -30,7 +30,7 @@
   time.timeZone = "Etc/GMT-4";
 
   networking = {
-    hostName = "goodfellow";
+    hostName = "floppylord";
     interfaceMonitor.enable = false;
     useDHCP = true;
     #interfaces = {
