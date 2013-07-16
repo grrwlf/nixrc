@@ -6,11 +6,17 @@
 rec {
   require = [
       /etc/nixos/hardware-configuration.nix
-#      ./include/devenv.nix
-#      ./include/subpixel.nix
-#      ./include/haskell_7_6.nix
-#      <nixos/modules/programs/virtualbox.nix>
+      ./include/devenv.nix
+      ./include/subpixel.nix
+      ./include/haskell.nix
+      <nixos/modules/programs/virtualbox.nix>
     ];
+
+  boot.kernelPackages = pkgs.linuxPackages_3_9 // {
+    virtualbox = pkgs.linuxPackages_3_9.virtualbox.override {
+      enableExtensionPack = true;
+    };
+  };
 
   hardware.enableAllFirmware = true;
   hardware.firmware = [ "/root/firmware" ];
@@ -18,16 +24,13 @@ rec {
   hardware.bluetooth.enable = false;
 
   boot.blacklistedKernelModules = [
-    "fbcon" "i915"
+    "fbcon"
     ];
 
   boot.extraKernelParams = [
     # Use better scheduler for SSD drive
     "elevator=noop"
     ];
-
-  # boot.kernelPackages = pkgs.linuxPackages_3_5;
-  boot.kernelPackages = pkgs.linuxPackages;
 
   # Use the GRUB 2 boot loader.
   boot.loader.grub.enable = true;
@@ -41,8 +44,6 @@ rec {
   #  }
   #'';
 
-
-  # Define on which hard drive you want to install Grub.
   boot.loader.grub.device = "/dev/sda";
 
   boot.kernelModules = [
@@ -59,7 +60,6 @@ rec {
     wireless.enable = false;
     useDHCP = false;
     wicd.enable = true;
-    # networkmanager.enable = true;
   };
 
   fileSystems = [
@@ -67,19 +67,11 @@ rec {
       device = "/dev/disk/by-label/ROOT";
       options = "defaults,relatime,discard";
     }
-#    { mountPoint = "/boot";
-#      device = "/dev/disk/by-label/BOOT";
-#      options = "defaults,relatime";
-#    }
     { mountPoint = "/home";
       device = "/dev/disk/by-label/HOME";
       options = "defaults,relatime,discard";
     }
   ];
-
-#  swapDevices = [
-#    # { device = "/dev/disk/by-label/SWAP"; }
-#  ];
 
   powerManagement = {
     enable = true;
@@ -128,8 +120,7 @@ rec {
 
     startOpenSSHAgent = true;
 
-    # videoDrivers = [ "intel" ];
-    videoDrivers = [ "vesa" ];
+    videoDrivers = [ "intel" ];
     
     layout = "us,ru";
 
@@ -188,10 +179,6 @@ rec {
   #   '';
   # };
 
-  # services.acpid = {
-  #   enable = true;
-  # };
-
   fonts = {
     enableFontConfig = true;
     enableFontDir = true;
@@ -211,13 +198,22 @@ rec {
     ];
   };
 
-  #environment.pathsToLink = ["/"];
+  users.extraUsers = {
+    grwlf = {
+      uid = 1000;
+      group = "users";
+      extraGroups = ["wheel,vboxusers"];
+      home = "/home/grwlf";
+      isSystemUser = false;
+      useDefaultShell = true;
+    };
+  };
 
   environment.systemPackages = with pkgs ; [
+
     # Basic tools
     psmisc
     iptables
-    #nmap
     tcpdump
     pmutils
     file
@@ -235,12 +231,11 @@ rec {
     bashCompletion
     mpg321
     catdoc
-    # graphviz
     tftp_hpa
-    # unetbootin
     atool
     ppp
     pptp
+    dos2unix
 
     # X11 apps
     xorg.xdpyinfo
@@ -272,7 +267,7 @@ rec {
     xfce.xfce4_systemload_plugin
     xfce.gigolo
     xfce.xfce4taskmanager
-    vlc
+    #vlc
     easytag
     libreoffice
     pidgin
@@ -281,19 +276,14 @@ rec {
     dosbox
     eclipses.eclipse_cpp_42
 
-    # Custom stuff
-#    haskell_7_6
-#    (devenv {
-#      enableCross = true;
-#      enableX11 = services.xserver.enable;
-#    })
-#    freetype_subpixel
-
+    haskell_7_6
+    (devenv { enableCross = true; enableX11 = services.xserver.enable; })
+    freetype_subpixel
   ];
 
-#  nixpkgs.config = {
-#    chrome.jre = true;
-#    firefox.jre = true;
-#  };
+  nixpkgs.config = {
+    chrome.jre = true;
+    firefox.jre = true;
+  };
 }
 

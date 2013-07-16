@@ -2,7 +2,7 @@
 
 let
 
-  haskbase = self : [
+  haskpkgs = self : [
     self.haskellPlatform
     self.cabalInstall
   ];
@@ -13,7 +13,7 @@ in {
 
     packageOverrides = pkgs: {
 
-      haskell_7_6 = (pkgs.haskellPackages_ghc763.ghcWithPackages haskbase);
+      haskell_7_6 = (pkgs.haskellPackages_ghc763.ghcWithPackages haskpkgs);
 
     };
   };

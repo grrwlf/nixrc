@@ -8,7 +8,7 @@ rec {
       /etc/nixos/hardware-configuration.nix
       ./include/devenv.nix
       ./include/subpixel.nix
-      ./include/haskell_7_6.nix
+      ./include/haskell.nix
       <nixos/modules/programs/virtualbox.nix>
     ];
 

@@ -9,7 +9,7 @@ rec {
       /etc/nixos/hardware-configuration.nix
       ./inc/devenv.nix
       #./inc/subpixel.nix
-      #./inc/haskell_7_6.nix
+      #./inc/haskell.nix
     ];
 
   # hardware.firmware = [ "/root/firmware" ];

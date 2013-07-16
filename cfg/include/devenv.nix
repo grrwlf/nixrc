@@ -4,7 +4,7 @@
 
   nixpkgs.config = {
 
-    packageOverrides = pkgs: {
+    packageOverrides = pkgs : {
 
       devenv = { enableCross ? false , enableX11 ? false } : let
 
@@ -51,9 +51,6 @@
           i386_toolchain.gcc
           i386_toolchain.binutils
           i386_toolchain.gdb
-          #arm_toolchain.gcc
-          #arm_toolchain.binutils
-          #arm_toolchain.gdb
           arm_toolchain_bare.gcc
           arm_toolchain_bare.binutils
           arm_toolchain_bare.gdb
@@ -63,6 +60,7 @@
         ];
 
         in pkgs.myEnvFun {
+
           name = "dev";
 
           buildInputs = with pkgs.stdenv.lib; common
