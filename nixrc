@@ -2,15 +2,14 @@
 
 if test -d "$NIX_DEV_ROOT" ; then
 
-export NIX_PATH="nixpkgs=$NIX_DEV_ROOT/nixpkgs:nixos=$NIX_DEV_ROOT/nixos:nixos-config=$NIX_DEV_ROOT/nixos-config:services=/etc/nixos/services"
+export NIX_PATH="nixpkgs=$NIX_DEV_ROOT/nixpkgs:nixos=$NIX_DEV_ROOT/nixpkgs/nixos:nixos-config=$NIX_DEV_ROOT/nixos-config:services=/etc/nixos/services"
 
 alias nix-env="nix-env -f '<nixpkgs>'"
 
-cde() { cd $NIX_DEV_ROOT; }
 cdp() { cd $NIX_DEV_ROOT/nixpkgs; }
-cdn() { cd $NIX_DEV_ROOT/nixos; }
+cdn() { cd $NIX_DEV_ROOT; }
 
-vimconf() { (cde && vim nixos-config ; ); }
+vimconf() { (cdn && vim nixos-config ; ); }
 vimallp() { (cdp && vim pkgs/top-level/all-packages.nix; ); }
 vime() { (cde && vim .; ); }
 
@@ -51,37 +50,21 @@ nix-dev-revision-sys() {
 # Print latest Hydra's revisions
 nix-dev-revision-latest() {
   local rev=`wget -q  -S --output-document - http://nixos.org/releases/nixos/channels/nixos-unstable 2>&1 |
-    grep Location | head -n 1 | awk -F '_' '{print $2}'`
-  if test "$?" != "0" ; then
+    grep Location | head -n 1 | sed -s 's/.*\.//'`
+  if test -z "$rev" ; then
     echo "nix-dev-revision-latest: Error obtaining channel info from nixos.org" >&2
     return $?
   fi
-  case $1 in
-    nixpkgs) echo $rev | cut -d'-' -f2 ;;
-    nixos) echo $rev | cut -d'-' -f1 ;;
-    *) printf "Usage: nix-dev-revision-latest nixos|nixpkgs\n" >&2
-       printf "Revision string: %s\n" $rev  >&2
-       return 1
-       ;;
-  esac
+  echo $rev
 }
 
 # Print local tree's revisions
-nix-dev-revision-intree() {
+nix-dev-revision-intree() { (
   local ME=nix-dev-revision-src
-  nixpkgs=$(cdp && git merge-base local origin/master | cut -c 1-7)
-  nixos=$(cdn && git merge-base local origin/master | cut -c 1-7)
-  case $1 in
-    nixpkgs) echo $nixpkgs ;;
-    nixos) echo $nixos ;;
-    *) echo "${nixos}_${nixpkgs}" ;;
-  esac
-}
+  cdp && git merge-base local origin/master | cut -c 1-7
+)}
 
-nix-dev-fetch() {
-  ( cdp && git fetch origin ; )
-  ( cdn && git fetch origin ; )
-}
+nix-dev-fetch() { ( cdp && git fetch origin ; ) }
 
 # Check whether simple rebase is possible or not. NixDev only supports simple
 # rebases.
@@ -102,12 +85,7 @@ nix-dev-rebase() {
     return 1
   }
 
-  local tree=$1
-  test -z "$tree" && {
-    echo "$ME: Argument required, try --help" >&2
-    return 1
-  }
-
+  local tree=nixpkgs
   local cwd=`pwd`
   if ! cd $NIX_DEV_ROOT/$tree 2>/dev/null ; then
     echo "$ME: $NIX_DEV_ROOT/$tree is not a directory" >&2
@@ -115,19 +93,19 @@ nix-dev-rebase() {
   fi
 
   (
-    set -e
-    echo "$ME: Fetching origin"
-    git fetch origin
-    echo "$ME: Checking whether rebase is possible"
-    nix-dev-rebase-check
-    echo "$ME: Checking out local branch"
-    git checkout local
-    base=`git merge-base local origin/master`
-    echo "$ME: Backing up current branch to local-$base"
-    git branch -f local-$base
-    newref=`nix-dev-revision-latest $tree`
-    echo "$ME: Rebasing local to $newref"
-    git rebase -f $newref
+    echo "$ME: Fetching origin" &&
+    git fetch origin &&
+    echo "$ME: Checking whether rebase is possible" &&
+    nix-dev-rebase-check &&
+    echo "$ME: Checking out local branch" &&
+    git checkout local &&
+    base=`git merge-base local origin/master` &&
+    echo "$ME: Backing up current branch to local-$base" &&
+    git branch -f local-$base &&
+    newref=`nix-dev-revision-latest $tree` &&
+    echo "$ME: Rebasing local to $newref" &&
+    git rebase -f $newref &&
+    true
   ) >&2
 
   if [ "$?" != "0" ] ; then {
@@ -142,14 +120,13 @@ nix-dev-rebase() {
 nix-dev-update() {
   local ME=nix-dev-update
   _needhelp "$@" && {
-    echo "$ME: updates my local git trees" >&2
+    echo "$ME: updates local git tree" >&2
     return 1
   }
 
-  nix-dev-rebase nixos && nix-dev-rebase nixpkgs && {
+  nix-dev-rebase && {
     echo "$ME: Successfully updated to `nix-dev-revision-intree` revisions" >&2
   }
-
 }
 
 nix-dev-attr-by-name() {(
@@ -192,7 +169,7 @@ nix-dev-unpack() {(
     exit 1
   }
 
-  which aunpack || {
+  which aunpack >/dev/null || {
     echo "$ME: aunpack is required. Please install it with nix-env -i atool" >&2
     exit 1
   }
@@ -286,6 +263,7 @@ nix-dev-penv() {(
   rm -rf "$T"
 )}
 
+# FIXME: replace --installed with --available, but keep speed
 nix-dev-querydrv() {
 	local S=`nix-env -qs --installed $1 --out-path | awk '{print $3}'`
 	local N=`echo $S | wc -w`
