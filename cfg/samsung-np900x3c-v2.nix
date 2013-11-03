@@ -35,14 +35,6 @@ rec {
   # Use the GRUB 2 boot loader.
   boot.loader.grub.enable = true;
   boot.loader.grub.version = 2;
-  #boot.loader.grub.extraEntries = ''
-  #  menuentry "Windows 7 (loader) (on /dev/sda1)" {
-  #    insmod part_msdos
-  #    insmod ntfs
-  #    set root='(hd0,msdos0)'
-  #    chainloader +1    
-  #  }
-  #'';
 
   boot.loader.grub.device = "/dev/sda";
 
@@ -56,10 +48,13 @@ rec {
   networking = {
     hostName = "greyblade";
 
-    interfaceMonitor.enable = false;
-    wireless.enable = false;
-    useDHCP = false;
-    wicd.enable = true;
+    # interfaceMonitor.enable = false;
+    # wireless.enable = false;
+    # useDHCP = false;
+    #
+    # wicd.enable = true;
+
+    networkmanager.enable = true;
   };
 
   fileSystems = [
@@ -124,19 +119,25 @@ rec {
     
     layout = "us,ru";
 
-    xkbOptions = "eurosign:e, grp:alt_space_toggle, ctrl:swapcaps, grp_led:caps, ctrl:nocaps";
+    xkbOptions = "grp:alt_space_toggle, ctrl:swapcaps, grp_led:caps";
 
-    desktopManager.xfce.enable = true;
+    desktopManager = {
+      xfce.enable = true;
+      # kde4.enable = true;
+    };
 
     displayManager = {
       lightdm = {
         enable = true;
       };
-      slim = {
-        enable = false;
-        autoLogin = true;
-        defaultUser = "grwlf";
-      };
+      # slim = {
+      #   enable = false;
+      #   autoLogin = true;
+      #   defaultUser = "grwlf";
+      # };
+      # kdm = {
+      #   enable = true;
+      # };
     };
 
     multitouch.enable = false;
@@ -165,19 +166,23 @@ rec {
       };
   };
 
-  # services.postfix = {
-  #   enable = true;
-  #   setSendmail = true;
-  #   # Thanks to http://rs20.mine.nu/w/2011/07/gmail-as-relay-host-in-postfix/
-  #   extraConfig = ''
-  #     relayhost=[smtp.gmail.com]:587
-  #     smtp_use_tls=yes */
-  #     smtp_tls_CAfile=/etc/ssl/certs/ca-bundle.crt
-  #     smtp_sasl_auth_enable=yes
-  #     smtp_sasl_password_maps=hash:/etc/postfix.local/sasl_passwd
-  #     smtp_sasl_security_options=noanonymous
-  #   '';
-  # };
+  services.postfix = {
+    enable = true;
+    setSendmail = true;
+
+    # Thanks to http://rs20.mine.nu/w/2011/07/gmail-as-relay-host-in-postfix/
+    extraConfig =
+      let
+        saslpwd = pkgs.callPackage ./include/sasl_passwd.nix {};
+      in ''
+        relayhost=[smtp.gmail.com]:587
+        smtp_use_tls=yes
+        smtp_tls_CAfile=/etc/ssl/certs/ca-bundle.crt
+        smtp_sasl_auth_enable=yes
+        smtp_sasl_password_maps=hash:${saslpwd}/sasl_passwd
+        smtp_sasl_security_options=noanonymous
+      '';
+  };
 
   fonts = {
     enableFontConfig = true;
@@ -202,21 +207,123 @@ rec {
     grwlf = {
       uid = 1000;
       group = "users";
-      extraGroups = ["wheel,vboxusers"];
+      extraGroups = ["wheel" "vboxusers" "networkmanager"];
       home = "/home/grwlf";
       isSystemUser = false;
       useDefaultShell = true;
     };
   };
 
-  environment.promptInit = ''
-    PROMPT_COLOR="1;31m"
-    let $UID && PROMPT_COLOR="1;32m"
-    PS1="\n\[\033[$PROMPT_COLOR\][\u@\h \w ]\\$\[\033[0m\] "
-    if test "$TERM" = "xterm"; then
-      PS1="\[\033]2;\h:\u: \w\007\ ]$PS1"
-    fi
-  '';
+  programs = {
+
+    bash = {
+
+      # shellInit {{{
+      shellInit = with pkgs ;
+        let 
+          git = gitAndTools.gitFull;
+        in ''
+        export EDITOR=${vimHugeX}/bin/vim
+        export VERSION_CONTROL=numbered
+        export SVN_EDITOR=$EDITOR
+        export LANG="ru_RU.UTF-8"
+        export OOO_FORCE_DESKTOP=gnome
+        export LC_COLLATE=C
+        export HISTCONTROL=ignorespace:erasedups
+        export PATH="$HOME/.cabal/bin:$PATH"
+        export PATH="$HOME/local/bin:$PATH"
+
+        cal()     { `which cal` -m "$@" ; }
+        df()      { `which df` -h "$@" ; }
+        du()      { `which du` -h "$@" ; }
+        man()     { LANG=C ${man}/bin/man "$@" ; }
+        feh()     { ${feh}/bin/feh -. "$@" ; }
+
+        q() 		  { exit ; }
+        s() 		  { ${screen}/bin/screen ; }
+        e() 		  { thunar . 2>/dev/null & }
+
+        log() 		{ ${vimHugeX}/bin/vim /var/log/messages + ; }
+        logx() 		{ ${vimHugeX}/bin/vim /var/log/X.0.log + ; }
+
+        cdt() 		{ cd $HOME/tmp ; }
+        cdd()     { cd $HOME/dwnl; }
+        gitk() 		{ LANG=C ${git}/bin/gitk "$@" & }
+        mcd() 		{ mkdir "$1" && cd "$1" ; }
+        vimless() { ${vimHugeX}/bin/vim -R "$@" - ; }
+        pfind() 	{ ${findutils}/bin/find -iname "*$1*" ; }
+        d() 	    { load-env-dev ; }
+        manconf() { ${man}/bin/man configuration.nix ; }
+        gf()      { ${git}/bin/git fetch github || ${git}/bin/git fetch origin ; }
+        beep()    { aplay ~/proj/dotfiles/beep.wav ; }
+      '';
+      # }}}
+
+      promptInit = ''
+        PROMPT_COLOR="1;31m"
+        let $UID && PROMPT_COLOR="1;32m"
+        PS1="\n\[\033[$PROMPT_COLOR\][\u@\h \w ]\\$\[\033[0m\] "
+        if test "$TERM" = "xterm"; then
+          PS1="\[\033]2;\h:\u: \w\007\ ]$PS1"
+        fi
+      '';
+
+      enableCompletion = true;
+    };
+
+    screen = {
+
+      # screenrc {{{
+      screenrc = ''
+        vbell off
+        msgwait 1
+        defutf8 on
+        startup_message off
+        defscrollback 5000
+        altscreen on
+        autodetach off
+        hardstatus alwayslastline "%{= Kw} %H : %{= Kw}%-w%{= wk}%n %t%{= Kw}%+w"
+
+        multiuser on
+        acldel guest
+        chacl guest -r-w-x "#?"
+
+        attrcolor b ".I"
+        termcapinfo xterm*|rxvt-unicode* 'Co#256:AB=\E[48;5;%dm:AF=\E[38;5;%dm'
+        defhstatus "screen ^E (^Et) | $USER@^EH"
+
+        defbce "on"
+
+        deflogin on
+        shell -$SHELL
+
+        bind q quit
+        bind u copy
+        bind s
+        bind 0 number 0
+        bind 1 number 1
+        bind 2 number 2
+        bind 3 number 3
+        bind 4 number 4
+        bind 5 number 5
+        bind 6 number 6
+        bind 7 number 7
+        bind k kill
+
+        bindkey ^[1 prev
+        bindkey ^[2 next
+        bindkey ^[q prev
+        bindkey ^[й prev
+        bindkey ^[w next
+        bindkey ^[ц next
+        bindkey ^[` other
+      '';
+
+      # }}}
+
+    };
+
+  };
 
   environment.systemPackages = with pkgs ; [
 
@@ -245,6 +352,9 @@ rec {
     ppp
     pptp
     dos2unix
+    fuse_exfat
+    acpid
+    upower
 
     # X11 apps
     xorg.xdpyinfo
@@ -276,23 +386,24 @@ rec {
     xfce.xfce4_systemload_plugin
     xfce.gigolo
     xfce.xfce4taskmanager
-    #vlc
-    easytag
-    libreoffice
+    vlc
+    /* easytag */
+    /* libreoffice */
     pidgin
-    gimp_2_8
+    /* gimp_2_8 */
     skype
-    dosbox
-    eclipses.eclipse_cpp_42
+    /* dosbox */
+    /* eclipses.eclipse_cpp_42 */
 
     haskell_7_6
-    (devenv { enableCross = true; enableX11 = services.xserver.enable; })
-    freetype_subpixel
+    /* (devenv { enableCross = true; enableX11 = services.xserver.enable; }) */
+    /* freetype_subpixel */
   ];
 
   nixpkgs.config = {
     chrome.jre = true;
     firefox.jre = true;
   };
+
 }
 
