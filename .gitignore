@@ -1,3 +1,4 @@
-nixos/*
-nixpkgs/*
+nixpkgs*
 cfg/include/sasl_passwd.nix
+*.patch
+nixos-config
