@@ -12,8 +12,8 @@ rec {
       <nixos/modules/programs/virtualbox.nix>
     ];
 
-  boot.kernelPackages = pkgs.linuxPackages_3_9 // {
-    virtualbox = pkgs.linuxPackages_3_9.virtualbox.override {
+  boot.kernelPackages = pkgs.linuxPackages_3_12 // {
+    virtualbox = pkgs.linuxPackages_3_12.virtualbox.override {
       enableExtensionPack = true;
     };
   };
@@ -147,8 +147,7 @@ rec {
       accelFactor = "0.05";
       maxSpeed = "10";
       twoFingerScroll = true;
-      additionalOptions =
-        ''
+      additionalOptions = ''
         MatchProduct "ETPS"
         Option "FingerLow"                 "3"
         Option "FingerHigh"                "5"
@@ -162,8 +161,15 @@ rec {
         Option "LTCornerButton"            "3"
         Option "LBCornerButton"            "2"
         Option "CoastingFriction"          "20"
-        '';
-      };
+      '';
+    };
+
+    serverFlagsSection = ''
+      Option "BlankTime" "0"
+      Option "StandbyTime" "0"
+      Option "SuspendTime" "0"
+      Option "OffTime" "0"
+    '';
   };
 
   services.postfix = {
@@ -218,7 +224,7 @@ rec {
 
     bash = {
 
-      # shellInit {{{
+      # bashrc {{{
       shellInit = with pkgs ;
         let 
           git = gitAndTools.gitFull;
@@ -256,6 +262,10 @@ rec {
         manconf() { ${man}/bin/man configuration.nix ; }
         gf()      { ${git}/bin/git fetch github || ${git}/bin/git fetch origin ; }
         beep()    { aplay ~/proj/dotfiles/beep.wav ; }
+
+        # qvim()    { ${qvim}/bin/qvim;
+        #             for i in 1 2 ; do ${wmctrl}/bin/wmctrl -r :ACTIVE: -b toggle,maximized_vert,maximized_horz ; done
+        #           }
       '';
       # }}}
 
@@ -355,8 +365,10 @@ rec {
     fuse_exfat
     acpid
     upower
+    smartmontools
 
     # X11 apps
+    unclutter
     xorg.xdpyinfo
     xorg.xinput
     gitAndTools.gitFull
@@ -396,13 +408,28 @@ rec {
     /* eclipses.eclipse_cpp_42 */
 
     haskell_7_6
-    /* (devenv { enableCross = true; enableX11 = services.xserver.enable; }) */
+    (devenv {
+      enableCross = false;
+      enableX11 = services.xserver.enable;
+    })
     /* freetype_subpixel */
   ];
 
   nixpkgs.config = {
     chrome.jre = true;
     firefox.jre = true;
+
+    # packageOverrides = pkgs: {
+    #   stdenv = pkgs.stdenv // {
+    #     platform = pkgs.stdenv.platform // {
+    #       kernelExtraConfig = ''
+    #         MEI y
+    #         MEI_ME y
+    #       '';
+    #     };
+    #   }; 
+    # };
+
   };
 
 }
