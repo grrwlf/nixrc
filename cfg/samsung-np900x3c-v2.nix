@@ -9,6 +9,8 @@ rec {
       ./include/devenv.nix
       ./include/subpixel.nix
       ./include/haskell.nix
+      ./include/screenrc.nix
+      ./include/bashrc.nix
       <nixos/modules/programs/virtualbox.nix>
     ];
 
@@ -27,7 +29,7 @@ rec {
     "fbcon"
     ];
 
-  boot.extraKernelParams = [
+  boot.kernelParams = [
     # Use better scheduler for SSD drive
     "elevator=noop"
     ];
@@ -48,12 +50,6 @@ rec {
   networking = {
     hostName = "greyblade";
 
-    # interfaceMonitor.enable = false;
-    # wireless.enable = false;
-    # useDHCP = false;
-    #
-    # wicd.enable = true;
-
     networkmanager.enable = true;
   };
 
@@ -73,20 +69,13 @@ rec {
   };
 
   security = {
-    sudo.configFile =
-      ''
-        # Don't edit this file. Set nixos option security.sudo.configFile instead
-        # env vars to keep for root and %wheel also if not explicitly set
-        Defaults:root,%wheel env_keep+=LOCALE_ARCHIVE
-        Defaults:root,%wheel env_keep+=NIX_PATH
-        Defaults:root,%wheel env_keep+=TERMINFO_DIRS
-
-        # "root" is allowed to do anything.
-        root        ALL=(ALL) SETENV: ALL
-
-        # Users in the "wheel" group can do anything.
-        %wheel      ALL=(ALL) SETENV: NOPASSWD: ALL
-      '';
+    sudo.configFile = ''
+      Defaults:root,%wheel env_keep+=LOCALE_ARCHIVE
+      Defaults:root,%wheel env_keep+=TERMINFO_DIRS
+      Defaults:root,%wheel env_keep+=NIX_DEV_ROOT
+      root        ALL=(ALL) SETENV: ALL
+      %wheel      ALL=(ALL) SETENV: NOPASSWD: ALL
+    '';
   };
 
   # services.cron = {
@@ -104,12 +93,8 @@ rec {
     enable = true;
   };
 
-  # Enable CUPS to print documents.
-  # services.printing.enable = true;
-
   services.dbus.packages = [ pkgs.gnome.GConf ];
 
-  # Enable the X11 windowing system.
   services.xserver = {
     enable = true;
 
@@ -220,121 +205,6 @@ rec {
     };
   };
 
-  programs = {
-
-    bash = {
-
-      # bashrc {{{
-      shellInit = with pkgs ;
-        let 
-          git = gitAndTools.gitFull;
-        in ''
-        export EDITOR=${vimHugeX}/bin/vim
-        export VERSION_CONTROL=numbered
-        export SVN_EDITOR=$EDITOR
-        export LANG="ru_RU.UTF-8"
-        export OOO_FORCE_DESKTOP=gnome
-        export LC_COLLATE=C
-        export HISTCONTROL=ignorespace:erasedups
-        export PATH="$HOME/.cabal/bin:$PATH"
-        export PATH="$HOME/local/bin:$PATH"
-
-        cal()     { `which cal` -m "$@" ; }
-        df()      { `which df` -h "$@" ; }
-        du()      { `which du` -h "$@" ; }
-        man()     { LANG=C ${man}/bin/man "$@" ; }
-        feh()     { ${feh}/bin/feh -. "$@" ; }
-
-        q() 		  { exit ; }
-        s() 		  { ${screen}/bin/screen ; }
-        e() 		  { thunar . 2>/dev/null & }
-
-        log() 		{ ${vimHugeX}/bin/vim /var/log/messages + ; }
-        logx() 		{ ${vimHugeX}/bin/vim /var/log/X.0.log + ; }
-
-        cdt() 		{ cd $HOME/tmp ; }
-        cdd()     { cd $HOME/dwnl; }
-        gitk() 		{ LANG=C ${git}/bin/gitk "$@" & }
-        mcd() 		{ mkdir "$1" && cd "$1" ; }
-        vimless() { ${vimHugeX}/bin/vim -R "$@" - ; }
-        pfind() 	{ ${findutils}/bin/find -iname "*$1*" ; }
-        d() 	    { load-env-dev ; }
-        manconf() { ${man}/bin/man configuration.nix ; }
-        gf()      { ${git}/bin/git fetch github || ${git}/bin/git fetch origin ; }
-        beep()    { aplay ~/proj/dotfiles/beep.wav ; }
-
-        # qvim()    { ${qvim}/bin/qvim;
-        #             for i in 1 2 ; do ${wmctrl}/bin/wmctrl -r :ACTIVE: -b toggle,maximized_vert,maximized_horz ; done
-        #           }
-      '';
-      # }}}
-
-      promptInit = ''
-        PROMPT_COLOR="1;31m"
-        let $UID && PROMPT_COLOR="1;32m"
-        PS1="\n\[\033[$PROMPT_COLOR\][\u@\h \w ]\\$\[\033[0m\] "
-        if test "$TERM" = "xterm"; then
-          PS1="\[\033]2;\h:\u: \w\007\ ]$PS1"
-        fi
-      '';
-
-      enableCompletion = true;
-    };
-
-    screen = {
-
-      # screenrc {{{
-      screenrc = ''
-        vbell off
-        msgwait 1
-        defutf8 on
-        startup_message off
-        defscrollback 5000
-        altscreen on
-        autodetach off
-        hardstatus alwayslastline "%{= Kw} %H : %{= Kw}%-w%{= wk}%n %t%{= Kw}%+w"
-
-        multiuser on
-        acldel guest
-        chacl guest -r-w-x "#?"
-
-        attrcolor b ".I"
-        termcapinfo xterm*|rxvt-unicode* 'Co#256:AB=\E[48;5;%dm:AF=\E[38;5;%dm'
-        defhstatus "screen ^E (^Et) | $USER@^EH"
-
-        defbce "on"
-
-        deflogin on
-        shell -$SHELL
-
-        bind q quit
-        bind u copy
-        bind s
-        bind 0 number 0
-        bind 1 number 1
-        bind 2 number 2
-        bind 3 number 3
-        bind 4 number 4
-        bind 5 number 5
-        bind 6 number 6
-        bind 7 number 7
-        bind k kill
-
-        bindkey ^[1 prev
-        bindkey ^[2 next
-        bindkey ^[q prev
-        bindkey ^[й prev
-        bindkey ^[w next
-        bindkey ^[ц next
-        bindkey ^[` other
-      '';
-
-      # }}}
-
-    };
-
-  };
-
   environment.systemPackages = with pkgs ; [
 
     # Basic tools
@@ -366,6 +236,7 @@ rec {
     acpid
     upower
     smartmontools
+    nix-dev
 
     # X11 apps
     unclutter
@@ -384,25 +255,25 @@ rec {
     zathura
     evince
     xneur
-    gxneur
+    # gxneur
     mplayer
     xlibs.xev
     xfontsel
     xlsfonts
     djvulibre
-    ghostscript
-    djview4
-    tightvnc
+    # ghostscript
+    # djview4
+    # tightvnc
     wine
     xfce.xfce4_cpufreq_plugin
     xfce.xfce4_systemload_plugin
     xfce.gigolo
     xfce.xfce4taskmanager
     vlc
-    /* easytag */
-    /* libreoffice */
+    # easytag
+    # libreoffice
     pidgin
-    /* gimp_2_8 */
+    # gimp_2_8
     skype
     /* dosbox */
     /* eclipses.eclipse_cpp_42 */
