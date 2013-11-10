@@ -2,131 +2,14 @@
 
 if test -d "$NIX_DEV_ROOT" ; then
 
-export NIX_PATH="nixpkgs=$NIX_DEV_ROOT/nixpkgs:nixos=$NIX_DEV_ROOT/nixpkgs/nixos:nixos-config=$NIX_DEV_ROOT/nixos-config:services=/etc/nixos/services"
-
-alias nix-env="nix-env -f '<nixpkgs>'"
-
 cdp() { cd $NIX_DEV_ROOT/nixpkgs; }
 cdn() { cd $NIX_DEV_ROOT; }
 
 vimconf() { (cdn && vim nixos-config ; ); }
 vimallp() { (cdp && vim pkgs/top-level/all-packages.nix; ); }
-vime() { (cde && vim .; ); }
-
-# Sudo helper
-_asroot() {
-  case `whoami` in
-    root)
-      echo "" ;;
-    *)
-      echo "sudo -H " ;;
-  esac
-}
 
 _needhelp() {
   echo "$@" | grep -qwE -e '-h|--help'
-}
-
-nix-dev-rebuild() { `_asroot` nixos-rebuild -I $NIX_DEV_ROOT "$@" ; }
-#nix-dev-rebuild-switch() { nix-dev-rebuild switch "$@" ; }
-#nix-dev-rebuild-build() { nixos-rebuild -I $NIX_DEV_ROOT build "$@" ; }
-#nix-dev-rebuild-build() { nix-dev-rebuild build "$@";  }
-#nix-dev-rebuild-dryrun() { nix-dev-rebuild dry-run "$@";  }
-
-# Print current system's revisions
-nix-dev-revision-sys() {
-  local revfile=/nix/var/nix/profiles/per-user/root/channels/nixos/nixos/.version
-  local rev_info=`cut -d'_' -f2 < $revfile`
-  case $1 in
-    nixpkgs) echo $rev_info | cut -d'-' -f2 ;;
-    nixos) echo $rev_info | cut -d'-' -f1 ;;
-    *) printf "Usage: nix-dev-revision nixos|nixpkgs\n" >&2
-       printf "Revision file contents: %s\n" `cat $revfile`  >&2
-       return 1
-       ;;
-  esac
-}
-
-# Print latest Hydra's revisions
-nix-dev-revision-latest() {
-  local rev=`wget -q  -S --output-document - http://nixos.org/releases/nixos/channels/nixos-unstable 2>&1 |
-    grep Location | head -n 1 | sed -s 's/.*\.//'`
-  if test -z "$rev" ; then
-    echo "nix-dev-revision-latest: Error obtaining channel info from nixos.org" >&2
-    return $?
-  fi
-  echo $rev
-}
-
-# Print local tree's revisions
-nix-dev-revision-intree() { (
-  local ME=nix-dev-revision-src
-  cdp && git merge-base local origin/master | cut -c 1-7
-)}
-
-nix-dev-fetch() { ( cdp && git fetch origin ; ) }
-
-# Check whether simple rebase is possible or not. NixDev only supports simple
-# rebases.
-nix-dev-rebase-check() {
-  # Should be run from nixos|nixpkgs tree
-  pwd | grep -qE 'nixpkgs|nixos' || return 1
-  local out=`git log --oneline  --no-merges local --not refs/remotes/origin/master local`
-  if test -n "$out" ; then
-    echo "nix-dev-rebase-check: failed: looks like there is a tricky case in the git repo. Please check it yourself" >&2
-    return 1;
-  fi
-}
-
-nix-dev-rebase() {
-  local ME=nix-dev-rebase
-  echo $@ | grep -qwE -e '-h|--help' && {
-    echo "$ME nixos|nixpkgs - Rebase the local branch onto the latest revision" >&2
-    return 1
-  }
-
-  local tree=nixpkgs
-  local cwd=`pwd`
-  if ! cd $NIX_DEV_ROOT/$tree 2>/dev/null ; then
-    echo "$ME: $NIX_DEV_ROOT/$tree is not a directory" >&2
-    return 1
-  fi
-
-  (
-    echo "$ME: Fetching origin" &&
-    git fetch origin &&
-    echo "$ME: Checking whether rebase is possible" &&
-    nix-dev-rebase-check &&
-    echo "$ME: Checking out local branch" &&
-    git checkout local &&
-    base=`git merge-base local origin/master` &&
-    echo "$ME: Backing up current branch to local-$base" &&
-    git branch -f local-$base &&
-    newref=`nix-dev-revision-latest $tree` &&
-    echo "$ME: Rebasing local to $newref" &&
-    git rebase -f $newref &&
-    true
-  ) >&2
-
-  if [ "$?" != "0" ] ; then {
-    echo "$ME: Automatic rebasing failed for $tree. Do some git magic to fix it."
-    } >&2
-    return 1
-  fi
-
-  cd $cwd
-}
-
-nix-dev-update() {
-  local ME=nix-dev-update
-  _needhelp "$@" && {
-    echo "$ME: updates local git tree" >&2
-    return 1
-  }
-
-  nix-dev-rebase && {
-    echo "$ME: Successfully updated to `nix-dev-revision-intree` revisions" >&2
-  }
 }
 
 nix-dev-br() {
@@ -354,5 +237,6 @@ nix-dev-addpy() {
 }
 
 else
-  echo "NIX_DEV_ROOT is not a directory. nix-dev functions will be disabled" >&2
+  echo "NIX_DEV_ROOT is not set" >&2
 fi
+
