@@ -129,6 +129,46 @@ nix-dev-update() {
   }
 }
 
+nix-dev-br() {
+  local ME=nix-dev-br
+  echo $@ | grep -qwE -e '-h|--help' && {
+    echo "$ME <commits> - Cherry pick the commits specified to a new branch derived directly from the master" >&2
+    return 1
+  }
+
+  local cwd=`pwd`
+  if ! cd $NIX_DEV_ROOT/nixpkgs 2>/dev/null ; then
+    echo "$ME: $NIX_DEV_ROOT/nixpkgs is not a directory" >&2
+    return 1
+  fi
+
+  local bname
+  echo -n "Enter name for the git branch: "
+  read bname
+
+  (
+  cb=`git branch --list | grep '*' | awk '{print $2}'`&&
+  echo "$ME: Current branch is $cb" &&
+  base=`git merge-base local origin/master` &&
+  echo "$ME: Base point is $base" &&
+  { git branch $bname $base || echo "$ME: branch $bname exists? Well, OK" ; } &&
+  git checkout $bname &&
+  echo "$ME: Cherry picking $@ to $bname" &&
+  git cherry-pick $@ &&
+  echo "$ME: Checking out the old current $cb" &&
+  git checkout $cb &&
+  true
+  ) >&2
+
+  if [ "$?" != "0" ] ; then {
+    echo "$ME: Cherry-picking failed. Do some git magic to fix it."
+    } >&2
+    return 1
+  fi
+
+  cd $cwd
+}
+
 nix-dev-attr-by-name() {(
   ME=nix-dev-attr-by-name
   _needhelp "$@" && {
