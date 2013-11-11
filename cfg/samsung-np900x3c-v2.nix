@@ -172,7 +172,7 @@ rec {
     xorg.xinput
     rxvt_unicode
     vimHugeX
-    firefoxWrapper
+    (firefoxLocaleWrapper "ru")
     glxinfo
     feh
     xcompmgr
