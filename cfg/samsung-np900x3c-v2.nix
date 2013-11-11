@@ -40,6 +40,10 @@ rec {
     "fuse"
   ];
 
+  i18n = {
+    defaultLocale = "ru_RU.UTF-8";
+  };
+
   hardware.enableAllFirmware = true;
   hardware.firmware = [ "/root/firmware" ];
   hardware.bluetooth.enable = false;
