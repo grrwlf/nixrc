@@ -11,6 +11,9 @@ rec {
       ./include/haskell.nix
       ./include/screenrc.nix
       ./include/bashrc.nix
+      ./include/systools.nix
+      ./include/fonts.nix
+      ./include/security.nix
       <nixos/modules/programs/virtualbox.nix>
     ];
 
@@ -19,11 +22,6 @@ rec {
       enableExtensionPack = true;
     };
   };
-
-  hardware.enableAllFirmware = true;
-  hardware.firmware = [ "/root/firmware" ];
-
-  hardware.bluetooth.enable = false;
 
   boot.blacklistedKernelModules = [
     "fbcon"
@@ -34,15 +32,17 @@ rec {
     "elevator=noop"
     ];
 
-  # Use the GRUB 2 boot loader.
   boot.loader.grub.enable = true;
   boot.loader.grub.version = 2;
-
   boot.loader.grub.device = "/dev/sda";
 
   boot.kernelModules = [
     "fuse"
   ];
+
+  hardware.enableAllFirmware = true;
+  hardware.firmware = [ "/root/firmware" ];
+  hardware.bluetooth.enable = false;
 
   # Europe/Moscow
   time.timeZone = "Etc/GMT-4";
@@ -68,29 +68,15 @@ rec {
     enable = true;
   };
 
-  security = {
-    sudo.configFile = ''
-      Defaults:root,%wheel env_keep+=LOCALE_ARCHIVE
-      Defaults:root,%wheel env_keep+=TERMINFO_DIRS
-      Defaults:root,%wheel env_keep+=NIX_DEV_ROOT
-      root        ALL=(ALL) SETENV: ALL
-      %wheel      ALL=(ALL) SETENV: NOPASSWD: ALL
-    '';
-  };
-
-  # services.cron = {
-  #   systemCronJobs = [
-  #     "* * * * * test ls -l / > /tmp/cronout 2>&1"
-  #   ];
-  # };
-
   services.ntp = {
     enable = true;
-    servers = [ "server.local" "0.pool.ntp.org" "1.pool.ntp.org" "2.pool.ntp.org" ];
+    servers = [ "0.pool.ntp.org" "1.pool.ntp.org" "2.pool.ntp.org" ];
   };
 
   services.openssh = {
     enable = true;
+    ports = [22 2222];
+    permitRootLogin = "yes";
   };
 
   services.dbus.packages = [ pkgs.gnome.GConf ];
@@ -175,77 +161,11 @@ rec {
       '';
   };
 
-  fonts = {
-    enableFontConfig = true;
-    enableFontDir = true;
-    enableCoreFonts = true;
-    enableGhostscriptFonts = true;
-    extraFonts = with pkgs ; [
-      liberation_ttf
-      ttf_bitstream_vera
-      dejavu_fonts
-      terminus_font
-      bakoma_ttf
-      bakoma_ttf
-      ubuntu_font_family
-      vistafonts
-      unifont
-      freefont_ttf
-    ];
-  };
-
-  users.extraUsers = {
-    grwlf = {
-      uid = 1000;
-      group = "users";
-      extraGroups = ["wheel" "vboxusers" "networkmanager"];
-      home = "/home/grwlf";
-      isSystemUser = false;
-      useDefaultShell = true;
-    };
-  };
-
   environment.systemPackages = with pkgs ; [
-
-    # Basic tools
-    psmisc
-    iptables
-    tcpdump
-    pmutils
-    file
-    cpufrequtils
-    zip
-    unzip
-    unrar
-    p7zip
-    openssl
-    cacert
-    w3m
-    wget
-    screen
-    fuse
-    bashCompletion
-    mpg321
-    catdoc
-    tftp_hpa
-    atool
-    ppp
-    pptp
-    dos2unix
-    fuse_exfat
-    acpid
-    upower
-    smartmontools
-    nix-dev
-
     # X11 apps
     unclutter
     xorg.xdpyinfo
     xorg.xinput
-    gitAndTools.gitFull
-    subversion
-    ctags
-    mc
     rxvt_unicode
     vimHugeX
     firefoxWrapper
@@ -289,18 +209,6 @@ rec {
   nixpkgs.config = {
     chrome.jre = true;
     firefox.jre = true;
-
-    # packageOverrides = pkgs: {
-    #   stdenv = pkgs.stdenv // {
-    #     platform = pkgs.stdenv.platform // {
-    #       kernelExtraConfig = ''
-    #         MEI y
-    #         MEI_ME y
-    #       '';
-    #     };
-    #   }; 
-    # };
-
   };
 
 }
