@@ -12,6 +12,11 @@ _needhelp() {
   echo "$@" | grep -qwE -e '-h|--help'
 }
 
+nix-dev-rebuild() {(
+  export NIX_PATH="nixpkgs=$NIX_DEV_ROOT/nixpkgs:nixos=$NIX_DEV_ROOT/nixpkgs/nixos:nixos-config=$NIX_DEV_ROOT/nixos-config:services=/etc/nixos/services"
+  sudo -H nixos-rebuild -I $NIX_DEV_ROOT "$@"
+)}
+
 nix-dev-br() {
   local ME=nix-dev-br
   echo $@ | grep -qwE -e '-h|--help' && {
