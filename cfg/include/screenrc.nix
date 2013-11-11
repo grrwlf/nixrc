@@ -14,6 +14,7 @@
         defscrollback 5000
         altscreen on
         autodetach off
+        # hardstatus alwayslastline "%{= wk} %H : %{= wk}%-w%{= Kw}%n %t%{= wk}%+w"
         hardstatus alwayslastline "%{= Kw} %H : %{= Kw}%-w%{= wk}%n %t%{= Kw}%+w"
 
         multiuser on
