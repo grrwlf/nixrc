@@ -14,6 +14,7 @@ rec {
       ./include/systools.nix
       ./include/fonts.nix
       ./include/security.nix
+      ./include/postfix_relay.nix
       <nixos/modules/programs/virtualbox.nix>
     ];
 
@@ -145,24 +146,6 @@ rec {
       Option "SuspendTime" "0"
       Option "OffTime" "0"
     '';
-  };
-
-  services.postfix = {
-    enable = true;
-    setSendmail = true;
-
-    # Thanks to http://rs20.mine.nu/w/2011/07/gmail-as-relay-host-in-postfix/
-    extraConfig =
-      let
-        saslpwd = pkgs.callPackage ./include/sasl_passwd.nix {};
-      in ''
-        relayhost=[smtp.gmail.com]:587
-        smtp_use_tls=yes
-        smtp_tls_CAfile=/etc/ssl/certs/ca-bundle.crt
-        smtp_sasl_auth_enable=yes
-        smtp_sasl_password_maps=hash:${saslpwd}/sasl_passwd
-        smtp_sasl_security_options=noanonymous
-      '';
   };
 
   environment.systemPackages = with pkgs ; [
