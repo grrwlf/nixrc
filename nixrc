@@ -65,7 +65,7 @@ nix-dev-attr-by-name() {(
   }
 
   IFS=''
-  Q=`nix-env -qa \* -P | grep -iw "$1"`
+  Q=`nix-dev-env -qa \* -P | grep -iw "$1"`
   case `echo $Q | wc -w` in
     0) echo "$ME: No packages found" >&2 ;
        exit 1 ;;
@@ -98,7 +98,7 @@ nix-dev-unpack() {(
   }
 
   which aunpack >/dev/null || {
-    echo "$ME: aunpack is required. Please install it with nix-env -i atool" >&2
+    echo "$ME: aunpack is required. Please install it with nix-dev-env -i atool" >&2
     exit 1
   }
 
@@ -180,11 +180,16 @@ nix-dev-penv() {(
     dir=`ls -1 .`
     ( cd $dir && find -name '*[ch]' -or -name '*.cpp' | xargs ctags ; )
     cp -r $dir $dir.orig
-    export NIX_DEV_UNPACK=`pwd`
-    export NIX_DEV_UNPACK_SRC=$dir
-    export NIX_DEV_UNPACK_SRC_ORIG=$dir.orig
-    cd $dir
-    nix-build $NIX_DEV_ROOT/nixpkgs --run-env -A "$ATTR"
+    nix-shell $NIX_DEV_ROOT/nixpkgs -A "$ATTR" \
+      --command "
+        nix-dev-patch() {(
+          LANG=C;
+          cd $T;
+          diff -ru $dir.orig $dir | grep -v Only;
+        )};
+        cd $dir;
+        screen;
+        return;"
   )
 
   echo "Deleting $T" >&2
@@ -193,7 +198,7 @@ nix-dev-penv() {(
 
 # FIXME: replace --installed with --available, but keep speed
 nix-dev-querydrv() {
-	local S=`nix-env -qs --installed $1 --out-path | awk '{print $3}'`
+	local S=`nix-dev-env -qs --installed $1 --out-path | awk '{print $3}'`
 	local N=`echo $S | wc -w`
 	case $N in
 		1) echo $S ;;
