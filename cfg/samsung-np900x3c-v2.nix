@@ -191,6 +191,7 @@ rec {
     wine
     xfce.xfce4_cpufreq_plugin
     xfce.xfce4_systemload_plugin
+    xfce.xfce4_xkb_plugin
     xfce.gigolo
     xfce.xfce4taskmanager
     vlc
@@ -201,6 +202,7 @@ rec {
     skype
     /* dosbox */
     /* eclipses.eclipse_cpp_42 */
+    networkmanagerapplet
 
     haskell_7_6
     (devenv {

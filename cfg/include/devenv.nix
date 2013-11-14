@@ -26,6 +26,8 @@
           patchelf
           m4
           perlPackages.LWP
+          gtk_doc
+          glib
         ];
 
         x11 = with pkgs ; [
