@@ -21,6 +21,15 @@
       isSystemUser = false;
       useDefaultShell = true;
     };
+
+    galtimir = {
+      uid = 1001;
+      group = "users";
+      extraGroups = ["wheel"]
+        ++ pkgs.lib.optional hasnm "networkmanager"
+        ++ pkgs.lib.optional hasvb "vboxusers";
+      home = "/home/galtimir";
+    };
   };
 }
 
