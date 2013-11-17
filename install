@@ -4,23 +4,16 @@ set -e
 
 I=nix-dev-install
 
-echo "$I: Copying current configuration to nix-dev dir"
-cp /etc/nixos/configuration.nix current-configuration.nix
-ln -s current-configuration.nix nixos-config
+#echo "$I: Copying current configuration to nix-dev dir"
+#cp /etc/nixos/configuration.nix current-configuration.nix
+#ln -s current-configuration.nix nixos-config
 
 echo "$I: Checking out nixpkgs tree"
 git clone https://github.com/NixOS/nixpkgs
-echo "$I: Checking out nixos tree"
-git clone https://github.com/NixOS/nixos
 
 echo "$I: Creating 'local' branches for development"
 
 ( cd nixpkgs
-  git branch local
-  git checkout local
-)
-
-( cd nixos
   git branch local
   git checkout local
 )
